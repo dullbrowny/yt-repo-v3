@@ -1,0 +1,37 @@
+import os
+import yt_dlp
+from utils import transcribe_audio, generate_qa_pairs
+from weaviate_setup import store_in_weaviate
+
+def process_video(youtube_url):
+    # Set up download options
+    download_options = {
+        'format': 'bestaudio/best',
+        'outtmpl': 'data/transcriptions/%(title)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
+
+    # Download the video
+    with yt_dlp.YoutubeDL(download_options) as ydl:
+        info_dict = ydl.extract_info(youtube_url, download=True)
+        video_title = info_dict.get('title', None)
+        audio_file = f"data/transcriptions/{video_title}.mp3"
+
+    # Transcribe audio
+    transcription = transcribe_audio(audio_file)
+
+    # Generate QA pairs from the transcription
+    qa_pairs = generate_qa_pairs(transcription)
+
+    # Store transcription and QA in Weaviate
+    store_in_weaviate(transcription, qa_pairs)
+
+    return {
+        'transcription': transcription,
+        'qa_pairs': qa_pairs
+    }
+

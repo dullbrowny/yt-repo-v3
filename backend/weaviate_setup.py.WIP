@@ -1,0 +1,44 @@
+import weaviate
+from weaviate.schema.crud_schema import WeaviateSchema
+
+# Connect to an existing Weaviate instance on port 8079
+client = weaviate.WeaviateClient(
+    http=weaviate.ProtocolParams(host="localhost", port=8079, secure=False),
+    grpc=weaviate.ProtocolParams(host="localhost", port=50060, secure=False)
+)
+
+def store_in_weaviate(transcription, qa_pairs):
+    schema = {
+        "class": "Transcription",
+        "properties": [
+            {
+                "name": "text",
+                "dataType": ["text"]
+            },
+            {
+                "name": "qa_pairs",
+                "dataType": ["text"]
+            }
+        ]
+    }
+
+    # Check if schema exists, and if not, create it
+    try:
+        if not client.schema.exists("Transcription"):
+            client.schema.create_class(schema)
+    except weaviate.exceptions.SchemaValidationException as e:
+        print(f"Schema validation failed: {e}")
+
+    # Store transcription and QA pairs
+    data_object = {
+        "text": transcription,
+        "qa_pairs": str(qa_pairs)
+    }
+
+    try:
+        client.data_object.create(data_object, "Transcription")
+    except weaviate.exceptions.ObjectAlreadyExistsException as e:
+        print(f"Data object already exists: {e}")
+    except Exception as e:
+        print(f"Error storing object in Weaviate: {e}")
+
