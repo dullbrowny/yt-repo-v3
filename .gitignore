@@ -3,4 +3,5 @@
 .env
 venv/
 *.env
+.venv-yt-repo-v3/
 environments/
